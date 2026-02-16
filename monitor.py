@@ -19,7 +19,7 @@ STATE_FILE = "state.json"
 SENDER_EMAIL = os.environ["EMAIL_USER"]
 APP_PASSWORD = os.environ["EMAIL_PASS"]
 
-RECEIVER_EMAIL = "EMAIL_RECEIVER"
+RECEIVER_EMAIL = os.environ["EMAIL_RECEIVER"]
 
 # Stop monitoring X days after first appearance
 TERMINATION_AFTER_DAYS = 14
