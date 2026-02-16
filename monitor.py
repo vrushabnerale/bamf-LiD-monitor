@@ -12,13 +12,14 @@ from datetime import datetime, timedelta
 
 URL = "https://www.bamf.de/DE/Themen/Integration/ZugewanderteTeilnehmende/Integrationskurse/Abschlusspruefung/abschlusspruefung-node.html"
 
+# For testing
 TARGET_DATE = "26.01.2026"
+# Later change to: "04.02.2026"
 
 STATE_FILE = "state.json"
 
 SENDER_EMAIL = os.environ["EMAIL_USER"]
 APP_PASSWORD = os.environ["EMAIL_PASS"]
-
 RECEIVER_EMAIL = os.environ["EMAIL_RECEIVER"]
 
 # Stop monitoring X days after first appearance
@@ -32,6 +33,8 @@ TERMINATION_AFTER_DAYS = 14
 # ------------------------------------------
 def send_email(subject, body):
 
+    print("Sending email...")
+
     msg = MIMEText(body)
 
     msg["Subject"] = subject
@@ -43,9 +46,11 @@ def send_email(subject, body):
         server.login(SENDER_EMAIL, APP_PASSWORD)
         server.send_message(msg)
 
+    print("Email sent successfully.")
+
 
 # ------------------------------------------
-# Extract Status Date from Official Sentence
+# Extract Status Date
 # ------------------------------------------
 def get_status_date(text):
 
@@ -57,6 +62,7 @@ def get_status_date(text):
         return match.group(1)
 
     return None
+
 
 # ------------------------------------------
 # Load State
@@ -97,7 +103,6 @@ def check_page():
             "Chrome/121.0.0.0 Safari/537.36"
         ),
         "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
-        "Connection": "keep-alive"
     }
 
     for attempt in range(5):
@@ -108,8 +113,7 @@ def check_page():
             response = requests.get(
                 URL,
                 headers=headers,
-                timeout=30,
-                verify=True  # keep SSL on
+                timeout=30
             )
 
             print("HTTP Status:", response.status_code)
@@ -125,6 +129,7 @@ def check_page():
     print("All fetch attempts failed.")
     return None
 
+
 # ------------------------------------------
 # Main Logic
 # ------------------------------------------
@@ -136,17 +141,19 @@ def main():
         print("Monitoring already terminated.")
         return
 
+
     print("Checking BAMF page...")
 
-    try:
-        page_text = check_page()
-        if page_text is None:
+
+    # Fetch page
+    page_text = check_page()
+
+    if page_text is None:
         print("Could not fetch page. Exiting run.")
         return
-    except Exception as e:
-        print("Page fetch failed:", e)
-    return
 
+
+    # Extract date
     status_date = get_status_date(page_text)
 
     print("Status date found:", status_date)
@@ -156,6 +163,7 @@ def main():
         print("Official sentence not found.")
         return
 
+
     now = datetime.utcnow()
 
 
@@ -163,6 +171,8 @@ def main():
     # CASE 1: Target appears
     # -------------------------
     if status_date == TARGET_DATE and state["target_found_at"] is None:
+
+        print("Triggering FIRST notification email")
 
         state["target_found_at"] = now.isoformat()
         state["last_date"] = TARGET_DATE
@@ -183,13 +193,13 @@ Link:
 """
         )
 
-        print("Target date detected for first time.")
-
 
     # -------------------------
     # CASE 2: Date changed
     # -------------------------
     elif state["last_date"] == TARGET_DATE and status_date != TARGET_DATE:
+
+        print("Triggering DATE CHANGE email")
 
         state["last_date"] = status_date
 
@@ -208,8 +218,6 @@ Link:
 """
         )
 
-        print("Date change detected.")
-
 
     # -------------------------
     # CASE 3: Termination
@@ -219,6 +227,8 @@ Link:
         first_seen = datetime.fromisoformat(state["target_found_at"])
 
         if now >= first_seen + timedelta(days=TERMINATION_AFTER_DAYS):
+
+            print("Triggering TERMINATION email")
 
             state["terminated"] = True
 
@@ -239,8 +249,6 @@ Regards,
 BAMF Monitor
 """
             )
-
-            print("Monitoring terminated.")
 
 
     save_state(state)
