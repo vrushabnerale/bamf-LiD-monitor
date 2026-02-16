@@ -154,6 +154,10 @@ def main():
 
 
     # Extract date
+    # DEBUG: print surrounding text
+    for line in page_text.split("\n"):
+        if "Prüfungsdatum" in line:
+            print("DEBUG LINE:", line.strip())
     status_date = get_status_date(page_text)
 
     print("Status date found:", status_date)
