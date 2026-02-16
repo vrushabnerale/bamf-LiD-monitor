@@ -88,40 +88,42 @@ def save_state(state):
 # ------------------------------------------
 def check_page():
 
+    import time
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/121.0.0.0 Safari/537.36"
         ),
-        "Accept-Language": "de-DE,de;q=0.9,en;q=0.8"
+        "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+        "Connection": "keep-alive"
     }
 
-    for attempt in range(3):  # retry 3 times
+    for attempt in range(5):
 
         try:
+            print(f"Attempt {attempt + 1} to fetch page...")
+
             response = requests.get(
                 URL,
                 headers=headers,
-                timeout=30
+                timeout=30,
+                verify=True  # keep SSL on
             )
+
+            print("HTTP Status:", response.status_code)
 
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            return soup.get_text()
+            return response.text
 
         except Exception as e:
-
-            print(f"Attempt {attempt + 1} failed: {e}")
-
-            if attempt == 2:
-                raise
-
-            import time
+            print("Fetch error:", e)
             time.sleep(5)
 
+    print("All fetch attempts failed.")
+    return None
 
 # ------------------------------------------
 # Main Logic
@@ -138,6 +140,9 @@ def main():
 
     try:
         page_text = check_page()
+        if page_text is None:
+        print("Could not fetch page. Exiting run.")
+        return
     except Exception as e:
         print("Page fetch failed:", e)
     return
