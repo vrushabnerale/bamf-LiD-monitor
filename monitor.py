@@ -54,17 +54,23 @@ def send_email(subject, body):
 # ------------------------------------------
 def get_status_date(text):
 
-    # Make whitespace uniform
-    clean_text = " ".join(text.split())
+    # Normalize spaces (remove weird unicode spaces)
+    text = text.replace("\xa0", " ")
+    text = " ".join(text.split())
 
-    pattern = r"Aktuell wertet das Bundesamt Tests bis Prüfungsdatum\s*(\d{2}\.\d{2}\.\d{4})\s*aus"
+    # Find sentence containing "Prüfungsdatum"
+    for part in text.split("."):
 
-    match = re.search(pattern, clean_text)
+        if "Prüfungsdatum" in part:
 
-    if match:
-        return match.group(1)
+            # Extract any date in this part
+            match = re.search(r"\d{2}\.\d{2}\.\d{4}", part)
+
+            if match:
+                return match.group(0)
 
     return None
+
 # ------------------------------------------
 # Load State
 # ------------------------------------------
