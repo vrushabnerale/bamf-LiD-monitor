@@ -89,12 +89,39 @@ def save_state(state):
 # ------------------------------------------
 def check_page():
 
-    response = requests.get(URL, timeout=20)
-    response.raise_for_status()
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/121.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "de-DE,de;q=0.9,en;q=0.8"
+    }
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    for attempt in range(3):  # retry 3 times
 
-    return soup.get_text()
+        try:
+            response = requests.get(
+                URL,
+                headers=headers,
+                timeout=30
+            )
+
+            response.raise_for_status()
+
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            return soup.get_text()
+
+        except Exception as e:
+
+            print(f"Attempt {attempt + 1} failed: {e}")
+
+            if attempt == 2:
+                raise
+
+            import time
+            time.sleep(5)
 
 
 # ------------------------------------------
@@ -110,7 +137,11 @@ def main():
 
     print("Checking BAMF page...")
 
-    page_text = check_page()
+    try:
+        page_text = check_page()
+    except Exception as e:
+        print("Page fetch failed:", e)
+    return
 
     status_date = get_status_date(page_text)
 
