@@ -6,15 +6,15 @@ import os
 import json
 import re
 from datetime import datetime, timedelta
+import time
 
 
 # ================= CONFIG =================
 
 URL = "https://www.bamf.de/DE/Themen/Integration/ZugewanderteTeilnehmende/Integrationskurse/Abschlusspruefung/abschlusspruefung-node.html"
 
-# For testing
+# TEST MODE (change later to "04.02.2026")
 TARGET_DATE = "26.01.2026"
-# Later change to: "04.02.2026"
 
 STATE_FILE = "state.json"
 
@@ -50,58 +50,9 @@ def send_email(subject, body):
 
 
 # ------------------------------------------
-# Extract Status Date
+# Fetch and Parse Page
 # ------------------------------------------
-def get_status_date(text):
-
-    # Normalize spaces (remove weird unicode spaces)
-    text = text.replace("\xa0", " ")
-    text = " ".join(text.split())
-
-    # Find sentence containing "Prüfungsdatum"
-    for part in text.split("."):
-
-        if "Prüfungsdatum" in part:
-
-            # Extract any date in this part
-            match = re.search(r"\d{2}\.\d{2}\.\d{4}", part)
-
-            if match:
-                return match.group(0)
-
-    return None
-
-# ------------------------------------------
-# Load State
-# ------------------------------------------
-def load_state():
-
-    if not os.path.exists(STATE_FILE):
-        return {
-            "last_date": None,
-            "target_found_at": None,
-            "terminated": False
-        }
-
-    with open(STATE_FILE, "r") as f:
-        return json.load(f)
-
-
-# ------------------------------------------
-# Save State
-# ------------------------------------------
-def save_state(state):
-
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f)
-
-
-# ------------------------------------------
-# Fetch Page
-# ------------------------------------------
-def check_page():
-
-    import time
+def fetch_page():
 
     headers = {
         "User-Agent": (
@@ -127,7 +78,9 @@ def check_page():
 
             response.raise_for_status()
 
-            return response.text
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            return soup
 
         except Exception as e:
             print("Fetch error:", e)
@@ -135,6 +88,54 @@ def check_page():
 
     print("All fetch attempts failed.")
     return None
+
+
+# ------------------------------------------
+# Extract Date from DOM
+# ------------------------------------------
+def get_status_date(soup):
+
+    paragraphs = soup.find_all("p")
+
+    for p in paragraphs:
+
+        text = p.get_text(" ", strip=True)
+
+        if "Prüfungsdatum" in text:
+
+            print("Found relevant paragraph:", text)
+
+            match = re.search(r"\d{2}\.\d{2}\.\d{4}", text)
+
+            if match:
+                return match.group(0)
+
+    return None
+
+
+# ------------------------------------------
+# Load State
+# ------------------------------------------
+def load_state():
+
+    if not os.path.exists(STATE_FILE):
+        return {
+            "last_date": None,
+            "target_found_at": None,
+            "terminated": False
+        }
+
+    with open(STATE_FILE, "r") as f:
+        return json.load(f)
+
+
+# ------------------------------------------
+# Save State
+# ------------------------------------------
+def save_state(state):
+
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
 
 
 # ------------------------------------------
@@ -153,18 +154,19 @@ def main():
 
 
     # Fetch page
-    page_text = check_page()
+    soup = fetch_page()
 
-    if page_text is None:
+    if soup is None:
         print("Could not fetch page. Exiting run.")
         return
 
 
     # Extract date
-    status_date = get_status_date(page_text)
+    status_date = get_status_date(soup)
 
     print("Status date found:", status_date)
     print("Target date:", TARGET_DATE)
+
 
     if status_date is None:
         print("Official sentence not found.")
