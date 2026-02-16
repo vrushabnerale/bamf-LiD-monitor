@@ -49,7 +49,7 @@ def send_email(subject, body):
 # ------------------------------------------
 def get_status_date(text):
 
-    pattern = r"Aktuell wertet das Bundesamt Tests bis Prüfungsdatum (\d{2}\.\d{2}\.\d{4}) aus\."
+    pattern = r"Aktuell wertet das Bundesamt Tests bis Prüfungsdatum\s+(\d{2}\.\d{2}\.\d{4})"
 
     match = re.search(pattern, text)
 
@@ -57,7 +57,6 @@ def get_status_date(text):
         return match.group(1)
 
     return None
-
 
 # ------------------------------------------
 # Load State
@@ -146,6 +145,7 @@ def main():
     status_date = get_status_date(page_text)
 
     print("Status date found:", status_date)
+    print("Target date:", TARGET_DATE)
 
     if status_date is None:
         print("Official sentence not found.")
