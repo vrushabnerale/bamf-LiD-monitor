@@ -14,7 +14,7 @@ import time
 URL = "https://www.bamf.de/DE/Themen/Integration/ZugewanderteTeilnehmende/Integrationskurse/Abschlusspruefung/abschlusspruefung-node.html"
 
 # TEST MODE (change later to "04.02.2026")
-TARGET_DATE = "26.01.2026"
+TARGET_DATE = "04.02.2026"
 
 STATE_FILE = "state.json"
 
