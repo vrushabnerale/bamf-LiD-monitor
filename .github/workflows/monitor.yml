@@ -1,5 +1,8 @@
 name: BAMF Monitor
 
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: "0 6,12,18 * * *"
@@ -26,3 +29,17 @@ jobs:
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
         run: python monitor.py
+
+      - name: Commit state.json
+        run: |
+          git config --global user.name "bamf-bot"
+          git config --global user.email "bamf-bot@users.noreply.github.com"
+
+          git add state.json
+
+          if git diff --cached --quiet; then
+            echo "No state change"
+          else
+            git commit -m "Update monitor state"
+            git push
+          fi
